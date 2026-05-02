@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alkis Picker | Berlin Gebäude-ID Tool</title>
+    <meta name="description" content="Ein Tool zur Suche nach Berliner Adressen und zum Kopieren von ALKIS Gebäude-IDs in die Zwischenablage.">
+
+    <!-- Google Fonts: Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+
+    <link rel="stylesheet" href="styles.css?v=1.2">
+    <link rel="icon" href="data:,">
+</head>
+
+<body>
+    <header class="app-header">
+        <div class="header-content">
+            <h1 id="app-title">Alkis Picker</h1>
+            <div class="search-container">
+                <input type="text" id="address-search" placeholder="Adresse in Berlin suchen..." autocomplete="off">
+                <button id="search-button" aria-label="Search">
+                    <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                </button>
+                <div id="search-results" class="search-results hidden"></div>
+            </div>
+        </div>
+    </header>
+
+    <main id="map-container"></main>
+
+    <div class="layer-control glass">
+        <button id="toggle-satellite" class="layer-btn" data-layer="satellite">Satellit</button>
+        <button id="toggle-alkis" class="layer-btn active" data-layer="alkis">ALKIS Ansicht</button>
+    </div>
+
+    <div id="building-info-window" class="building-info glass hidden">
+        <div class="info-header">
+            <h3>Gebäudeinformationen</h3>
+            <button id="minimize-info" aria-label="Minimize">
+                <svg id="minimize-icon" viewBox="0 0 24 24" width="18" height="18" stroke="currentColor"
+                    stroke-width="2" fill="none">
+                    <path d="M18 12H6"></path>
+                </svg>
+                <svg id="expand-icon" class="hidden" viewBox="0 0 24 24" width="18" height="18" stroke="currentColor"
+                    stroke-width="2" fill="none">
+                    <path d="M12 6v12M6 12h12"></path>
+                </svg>
+            </button>
+        </div>
+        <div id="info-content" class="info-content">
+            <p class="placeholder-text">Klicken Sie auf ein Gebäude in der Karte, um Details zu sehen.</p>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+
+
+    <div class="info-panel glass">
+        <p>Klicken Sie auf ein Gebäude, um die <strong>ALKIS-ID</strong> zu kopieren</p>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="main.js?v=1.3"></script>
+</body>
+
+</html>
