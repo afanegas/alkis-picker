@@ -8,7 +8,8 @@ document.addEventListener('DOMContentLoaded', () => {
         zoom: 13,
         wmsUrl: 'https://gdi.berlin.de/services/wms/alkis_gebaeude',
         wfsUrl: 'https://gdi.berlin.de/services/wfs/alkis_gebaeude',
-        wfsTypeName: 'alkis_gebaeude:gebaeude'
+        wfsTypeName: 'alkis_gebaeude:gebaeude',
+        deepLinkZoom: 17 // wider than the close-up search-click zoom (20), so surrounding context is visible
     };
 
     // State
@@ -79,18 +80,42 @@ document.addEventListener('DOMContentLoaded', () => {
         searchTimeout = setTimeout(() => performSearch(query), 300);
     });
 
-    async function performSearch(query) {
+    async function performSearch(query, { flyToTop = false } = {}) {
         try {
             const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ', Berlin')}&limit=5`;
             const response = await fetch(url, {
                 headers: { 'Accept-Language': 'en,de' }
             });
             const data = await response.json();
-            
+
             displayResults(data);
+
+            // Deep-link convenience: jump straight to the best match,
+            // while leaving the dropdown open in case it's the wrong one.
+            if (flyToTop && data.length > 0) {
+                const top = data[0];
+                const lat = parseFloat(top.lat);
+                const lon = parseFloat(top.lon);
+                map.flyTo([lat, lon], CONFIG.deepLinkZoom);
+            }
         } catch (error) {
             console.error('Search error:', error);
         }
+    }
+
+    /**
+     * Deep-link support: ?address=<text> in the URL pre-fills the search
+     * box, runs the same search as manual typing, and flies to the top
+     * result. Lets addresses from a spreadsheet be turned into clickable
+     * links, e.g. https://example.com/?address=Hauptstra%C3%9Fe%2012
+     */
+    function initDeepLink() {
+        const params = new URLSearchParams(window.location.search);
+        const address = params.get('address');
+        if (!address || !address.trim()) return;
+
+        searchInput.value = address;
+        performSearch(address.trim(), { flyToTop: true });
     }
 
     function displayResults(data) {
@@ -412,4 +437,7 @@ document.addEventListener('DOMContentLoaded', () => {
             searchResults.classList.add('hidden');
         }
     });
+
+    // Run any ?address= deep link now that everything is wired up
+    initDeepLink();
 });
