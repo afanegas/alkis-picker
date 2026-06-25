@@ -37,9 +37,10 @@ document.addEventListener('DOMContentLoaded', () => {
     map.getPane('alkisPane').style.zIndex = 450;
     map.getPane('alkisPane').style.pointerEvents = 'none';
 
-    // Standard OSM Layer (Standard base map)
-    const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap-Mitwirkende',
+    // basemap.de Web Raster (Standard base map) — official German federal/state map service (BKG/ZSGT)
+    // Note tile path order is {z}/{y}/{x}, unlike most XYZ services.
+    const osmLayer = L.tileLayer('https://sgx.geodatenzentrum.de/wmts_basemapde/tile/1.0.0/de_basemapde_web_raster_farbe/default/GLOBAL_WEBMERCATOR/{z}/{y}/{x}.png', {
+        attribution: '&copy; <a href="https://www.bkg.bund.de" target="_blank">GeoBasis-DE / BKG ' + new Date().getFullYear() + '</a>',
         maxZoom: 22,
         maxNativeZoom: 19
     }).addTo(map);
