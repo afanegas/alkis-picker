@@ -265,6 +265,37 @@ h1 {
 .leaflet-control-zoom-in { border-radius: 10px 10px 0 0 !important; }
 .leaflet-control-zoom-out { border-radius: 0 0 10px 10px !important; }
 
+/* Attribution: kept legally visible but visually minimal.
+   Small, low-opacity, no background by default; becomes fully
+   readable on hover/focus/touch so it never disappears entirely. */
+.leaflet-control-attribution {
+    background: transparent !important;
+    box-shadow: none !important;
+    font-size: 9px !important;
+    line-height: 1.2 !important;
+    padding: 1px 4px !important;
+    color: rgba(0, 0, 0, 0.35) !important;
+    opacity: 0.55;
+    transition: opacity 0.2s ease, background 0.2s ease;
+}
+
+.leaflet-control-attribution a {
+    color: rgba(0, 0, 0, 0.45) !important;
+}
+
+.leaflet-control-attribution:hover,
+.leaflet-control-attribution:focus-within {
+    opacity: 1;
+    background: var(--bg-glass) !important;
+    backdrop-filter: blur(10px) !important;
+    border-radius: 6px;
+}
+
+.leaflet-control-attribution:hover a,
+.leaflet-control-attribution:focus-within a {
+    color: var(--text-main) !important;
+}
+
 /* Building Info Window */
 .building-info {
     position: absolute;
