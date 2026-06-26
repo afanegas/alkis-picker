@@ -67,7 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
         transparent: true,
         pane: 'alkisPane',
         maxZoom: 22,
-        attribution: '&copy; GeoBasis-DE/BKG (2024), Geoportal Berlin'
+        attribution: '&copy; GeoBasis-DE/BKG (2024), <a href="https://daten.berlin.de/datensaetze/alkis-berlin-gebaude-wfs-728b368a" target="_blank" rel="noopener noreferrer">Geoportal Berlin</a>'
     }).addTo(map);
 
 
