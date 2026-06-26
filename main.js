@@ -46,17 +46,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // basemap.de Web Raster (Standard base map) — official German federal/state map service (BKG/ZSGT)
     // Note tile path order is {z}/{y}/{x}, unlike most XYZ services.
     const osmLayer = L.tileLayer('https://sgx.geodatenzentrum.de/wmts_basemapde/tile/1.0.0/de_basemapde_web_raster_farbe/default/GLOBAL_WEBMERCATOR/{z}/{y}/{x}.png', {
-        attribution: '&copy; <a href="https://www.bkg.bund.de" target="_blank">GeoBasis-DE / BKG ' + new Date().getFullYear() + '</a>',
+        attribution: '&copy; <a href="https://basemap.de/" target="_blank">basemap.de</a> - GeoBasis-DE / BKG (' + new Date().getFullYear() + ') CC BY 4.0',
         maxZoom: 22,
         maxNativeZoom: 19
     }).addTo(map);
 
 
-    // Satellite Layer (Esri World Imagery) - OFF by default
-    const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+    // Satellite Layer (Geoportal Berlin / DOP20RGBI 2026 via codefor.de) - OFF by default
+    const satelliteLayer = L.tileLayer('https://tiles.codefor.de/berlin/geoportal/luftbilder/2026-dop20rgb/{z}/{x}/{y}.png', {
+        attribution: 'Luftbild &copy; <a href="https://daten.berlin.de/datensaetze/digitale-farbige-trueorthophotos-2026-dop20rgbi-9ff3159b" target="_blank" rel="noopener noreferrer">Geoportal Berlin / DOP20RGBI 2026</a>',
         maxZoom: 22,
-        maxNativeZoom: 18
+        maxNativeZoom: 20
     });
 
 
@@ -67,7 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
         transparent: true,
         pane: 'alkisPane',
         maxZoom: 22,
-        attribution: '&copy; GeoBasis-DE/BKG (2024), <a href="https://daten.berlin.de/datensaetze/alkis-berlin-gebaude-wfs-728b368a" target="_blank" rel="noopener noreferrer">Geoportal Berlin</a>'
+        attribution: '<a href="https://daten.berlin.de/datensaetze/alkis-berlin-gebaude-wfs-728b368a" target="_blank" rel="noopener noreferrer">Geoportal Berlin / ALKIS Gebäude</a>'
     }).addTo(map);
 
 
@@ -233,8 +233,13 @@ document.addEventListener('DOMContentLoaded', () => {
             activeLayers[layerType] = !activeLayers[layerType];
             
             if (layerType === 'satellite') {
-                if (activeLayers.satellite) satelliteLayer.addTo(map);
-                else map.removeLayer(satelliteLayer);
+                if (activeLayers.satellite) {
+                    satelliteLayer.addTo(map);
+                    map.removeLayer(osmLayer);
+                } else {
+                    map.removeLayer(satelliteLayer);
+                    osmLayer.addTo(map);
+                }
             } else {
                 if (activeLayers.alkis) alkisWmsLayer.addTo(map);
                 else map.removeLayer(alkisWmsLayer);

@@ -2,7 +2,7 @@
 
 A tool for quickly identifying and retrieving building IDs from the Berlin ALKIS database.
 
-**Testen Sie das Tool online**: [afanegas.github.io/alkis-picker/](https://afanegas.github.io/alkis-picker/)
+**Test the tool online**: [afanegas.github.io/alkis-picker/](https://afanegas.github.io/alkis-picker/)
 
 ## 🚀 Purpose
 Alkis Picker allows users to:
@@ -11,7 +11,9 @@ Alkis Picker allows users to:
 - **Extract** detailed building information (ID, use, floors, address) by clicking on the map.
 - **Copy** the unique ALKIS building ID (UUID) directly to the clipboard with a single click.
 
-## 🔗 Deep Linking (Direct Address Search via URL)
+## 🔗 Deep Linking
+
+### Direct Address Search
 Alkis Picker supports a URL query parameter, `address`, that lets you jump straight to a search result without typing anything into the app.
 
 Opening a link in the form:
@@ -54,10 +56,20 @@ https://<your-domain>/?address=Rathausstra%C3%9Fe%2015%2C%2010178%20Berlin
 
 > Note: In the German version of Excel, the argument separator in formulas is `;` rather than `,`, as used above. `ENCODEURL` is available in Excel 2013 and later (called `URLCODIEREN` in some older German builds — if `ENCODEURL` is not recognized, try `URLCODIEREN`).
 
+### Direct ALKIS ID Lookup
+You can also load a specific building directly by its ALKIS ID (UUID) using the `id` query parameter (supporting aliases: `id`, `uuid`, `alkis-id`, or `alkis_id`):
+
+```
+https://<your-domain>/?id=<alkis-id>
+```
+
+This will automatically retrieve the building details, highlight it, and focus the map on it.
+
 ## 📡 Data Sources
 - **[Nominatim (OpenStreetMap)](https://nominatim.org/)**: For address geocoding and search.
-- **[Berlin GDI (Geoportal Berlin)](https://gdi.berlin.de/viewer/main/)**
-- **Map Tiles**: [Carto](https://carto.com/) (Standard) and [Esri](https://www.esri.com/) (Satellite Imagery).
+- **[ALKIS Gebäude (Geoportal Berlin)](https://daten.berlin.de/datensaetze/alkis-berlin-gebaude-wfs-728b368a)**: Web Feature Service (WFS) for building metadata search/lookup and Web Map Service (WMS) for visual overlays.
+- **[basemap.de](https://basemap.de/)**: Official German federal/state Web Raster service (standard base map).
+- **[Digitale farbige TrueOrthophotos 2026 (DOP20RGBI)](https://daten.berlin.de/datensaetze/digitale-farbige-trueorthophotos-2026-dop20rgbi-9ff3159b)**: High-resolution aerial imagery via the Code for Berlin tile service (`tiles.codefor.de`).
 
 ## 🛠 Technology Stack
 - **Frontend**: Vanilla JavaScript (ES6+), HTML5, CSS3.
