@@ -2,6 +2,8 @@
 
 A tool for quickly identifying and retrieving building IDs from the Berlin ALKIS database.
 
+**Testen Sie das Tool online**: [afanegas.github.io/alkis-picker/](https://afanegas.github.io/alkis-picker/)
+
 ## 🚀 Purpose
 Alkis Picker allows users to:
 - **Search** for addresses in Berlin.

@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
         wmsUrl: 'https://gdi.berlin.de/services/wms/alkis_gebaeude',
         wfsUrl: 'https://gdi.berlin.de/services/wfs/alkis_gebaeude',
         wfsTypeName: 'alkis_gebaeude:gebaeude',
-        deepLinkZoom: 17 // wider than the close-up search-click zoom (20), so surrounding context is visible
+        deepLinkZoom: 19
     };
 
     // State
@@ -25,9 +25,15 @@ document.addEventListener('DOMContentLoaded', () => {
         center: CONFIG.center,
         zoom: CONFIG.zoom,
         maxZoom: 22,
-        zoomControl: false
+        zoomControl: false,
+        attributionControl: false
     });
 
+
+    // Custom Attribution Control to include "Über Alkis-Picker" link
+    L.control.attribution({
+        prefix: '<a href="about.html">Über Alkis-Picker</a> | <a href="https://leafletjs.com" title="A JavaScript library for interactive maps" target="_blank">Leaflet</a>'
+    }).addTo(map);
 
     // Custom Zoom Control position
     L.control.zoom({ position: 'bottomright' }).addTo(map);
@@ -69,6 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('address-search');
     const searchResults = document.getElementById('search-results');
     let searchTimeout;
+    const ID_REGEX = /^(gebaeude\.)?DE[A-Z0-9]{14}$/i;
 
     searchInput.addEventListener('input', (e) => {
         clearTimeout(searchTimeout);
@@ -81,7 +88,57 @@ document.addEventListener('DOMContentLoaded', () => {
         searchTimeout = setTimeout(() => performSearch(query), 300);
     });
 
+    // Enter key press in search input
+    searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            const query = searchInput.value.trim();
+            if (query.length >= 3) {
+                performSearch(query, { flyToTop: true });
+                searchResults.classList.add('hidden');
+            }
+        }
+    });
+
+    // Search button click
+    const searchButton = document.getElementById('search-button');
+    if (searchButton) {
+        searchButton.addEventListener('click', () => {
+            const query = searchInput.value.trim();
+            if (query.length >= 3) {
+                performSearch(query, { flyToTop: true });
+                searchResults.classList.add('hidden');
+            }
+        });
+    }
+
     async function performSearch(query, { flyToTop = false } = {}) {
+        // Check if query looks like building ID
+        if (ID_REGEX.test(query)) {
+            try {
+                let uuid = query;
+                if (uuid.toLowerCase().startsWith('gebaeude.')) {
+                    uuid = uuid.substring(9);
+                }
+                const building = await fetchBuildingById(uuid);
+                if (building) {
+                    displayResults([{
+                        isBuildingId: true,
+                        display_name: `Gebäude-ID: ${uuid}`,
+                        building: building
+                    }]);
+
+                    if (flyToTop) {
+                        selectBuilding(building, true);
+                        searchResults.classList.add('hidden');
+                    }
+                    return;
+                }
+            } catch (error) {
+                console.error('ID search error:', error);
+            }
+        }
+
+        // Normal OSM search
         try {
             const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ', Berlin')}&limit=5`;
             const response = await fetch(url, {
@@ -105,18 +162,41 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * Deep-link support: ?address=<text> in the URL pre-fills the search
-     * box, runs the same search as manual typing, and flies to the top
-     * result. Lets addresses from a spreadsheet be turned into clickable
-     * links, e.g. https://example.com/?address=Hauptstra%C3%9Fe%2012
+     * Deep-link support: ?address=<text> or ?id=<alkis-id> in the URL.
+     * Pre-fills search, runs query, and zooms to top result or building.
      */
-    function initDeepLink() {
+    async function initDeepLink() {
         const params = new URLSearchParams(window.location.search);
-        const address = params.get('address');
-        if (!address || !address.trim()) return;
+        
+        // Support ALKIS-ID URL parameters (id, uuid, alkis-id, alkis_id)
+        const id = params.get('id') || params.get('uuid') || params.get('alkis-id') || params.get('alkis_id');
+        if (id && id.trim()) {
+            const trimmedId = id.trim();
+            searchInput.value = trimmedId;
+            try {
+                let uuid = trimmedId;
+                if (uuid.toLowerCase().startsWith('gebaeude.')) {
+                    uuid = uuid.substring(9);
+                }
+                const building = await fetchBuildingById(uuid);
+                if (building) {
+                    selectBuilding(building, true);
+                } else {
+                    showToast('Gebäude mit dieser ID wurde nicht gefunden.', 4000);
+                }
+            } catch (error) {
+                console.error('Deep link ID loading error:', error);
+                showToast('Fehler beim Laden des Gebäudes per ID.', 3000);
+            }
+            return;
+        }
 
-        searchInput.value = address;
-        performSearch(address.trim(), { flyToTop: true });
+        // Fallback to address deep link
+        const address = params.get('address');
+        if (address && address.trim()) {
+            searchInput.value = address;
+            performSearch(address.trim(), { flyToTop: true });
+        }
     }
 
     function displayResults(data) {
@@ -130,11 +210,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const div = document.createElement('div');
             div.textContent = result.display_name;
             div.addEventListener('click', () => {
-                const lat = parseFloat(result.lat);
-                const lon = parseFloat(result.lon);
-                map.flyTo([lat, lon], 20);
+                if (result.isBuildingId) {
+                    selectBuilding(result.building, true);
+                } else {
+                    const lat = parseFloat(result.lat);
+                    const lon = parseFloat(result.lon);
+                    map.flyTo([lat, lon], 20);
+                    searchInput.value = result.display_name;
+                }
                 searchResults.classList.add('hidden');
-                searchInput.value = result.display_name;
             });
             searchResults.appendChild(div);
         });
@@ -255,6 +339,75 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
+    /**
+     * Highlights the building, shows details in info window, copies ID, and optionally zooms.
+     */
+    function selectBuilding(feature, shouldZoom = false) {
+        const props = feature.properties;
+        
+        // Populate Info Window
+        updateInfoWindow({ ...props });
+
+        // Highlight selected building in red
+        if (selectedBuildingLayer) {
+            map.removeLayer(selectedBuildingLayer);
+        }
+        
+        selectedBuildingLayer = L.geoJSON(feature, {
+            style: {
+                color: '#ff0000',
+                weight: 3,
+                opacity: 0.8,
+                fillColor: '#ff0000',
+                fillOpacity: 0.3
+            }
+        }).addTo(map);
+
+        if (shouldZoom) {
+            // Zoom/pan map to match the building boundaries
+            map.fitBounds(selectedBuildingLayer.getBounds(), { maxZoom: CONFIG.deepLinkZoom });
+        }
+
+        // Copy UUID to clipboard
+        const uuid = props.uuid || props.UUID || props.gml_id;
+        if (uuid) {
+            copyToClipboard(uuid);
+        } else {
+            showToast('Gebäude gefunden, aber keine ID verfügbar.', 3000);
+        }
+    }
+
+    /**
+     * Fetches building details from WFS service by building/ALKIS ID (UUID).
+     */
+    async function fetchBuildingById(uuid) {
+        const featureID = `gebaeude.${uuid}`;
+        const wfsParams = new URLSearchParams({
+            service: 'WFS',
+            version: '1.1.0',
+            request: 'GetFeature',
+            typeName: CONFIG.wfsTypeName,
+            outputFormat: 'application/json',
+            srsName: 'EPSG:4326',
+            featureID: featureID
+        });
+
+        const url = `${CONFIG.wfsUrl}?${wfsParams.toString()}`;
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            const text = await response.text();
+            console.error('WFS ID Lookup Error Response:', text);
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        if (data.features && data.features.length > 0) {
+            return data.features[0];
+        }
+        return null;
+    }
+
     // --- WFS Click Handling ---
     map.on('click', async (e) => {
         if (!activeLayers.alkis) return;
@@ -277,8 +430,6 @@ document.addEventListener('DOMContentLoaded', () => {
             bbox: `${bbox},EPSG:4326`,
             maxFeatures: 10
         });
-
-
 
         const url = `${CONFIG.wfsUrl}?${wfsParams.toString()}`;
 
@@ -309,7 +460,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     return isBuilding && !isPart;
                 });
 
-
                 if (buildings.length > 0) {
                     // Precision improvement: Find which building actually contains the click point
                     let selectedBuilding = buildings.find(feature => isPointInPolygon(e.latlng, feature));
@@ -319,39 +469,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         selectedBuilding = buildings[0];
                     }
 
-                    const props = selectedBuilding.properties;
-                    
-                    // Populate Info Window
-                    updateInfoWindow({ ...props });
-
-                    // Highlight selected building in red
-                    if (selectedBuildingLayer) {
-                        map.removeLayer(selectedBuildingLayer);
-                    }
-                    
-                    selectedBuildingLayer = L.geoJSON(selectedBuilding, {
-                        style: {
-                            color: '#ff0000',
-                            weight: 3,
-                            opacity: 0.8,
-                            fillColor: '#ff0000',
-                            fillOpacity: 0.3
-                        }
-                    }).addTo(map);
-
-                    // Still copy UUID to clipboard as before
-                    const uuid = props.uuid || props.UUID || props.gml_id;
-                    if (uuid) {
-                        copyToClipboard(uuid);
-                    } else {
-                        showToast('Gebäude gefunden, aber keine ID verfügbar.', 3000);
-                    }
+                    // Highlight and show building info without zooming
+                    selectBuilding(selectedBuilding, false);
                 } else {
                     showToast('Hier wurden nur Gebäudeteile gefunden. Bitte klicken Sie auf das Hauptgebäude.', 3000);
                 }
             } else {
-
-
                 showToast('An diesem Standort wurde kein Gebäude gefunden.', 2000);
             }
         } catch (error) {
